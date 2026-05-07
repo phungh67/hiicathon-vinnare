@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   Activity, AlertTriangle, Brain, Building2, CheckCircle2, Leaf,
-  Lightbulb, RefreshCw, Server, ShieldAlert, Sparkles, Users, Zap,
+  Lightbulb, LineChart as LineChartIcon, RefreshCw, Server, ShieldAlert, Sparkles, Users, Zap,
 } from "lucide-react";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
