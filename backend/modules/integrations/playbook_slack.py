@@ -15,9 +15,10 @@ import random
 import requests
 from typing import List, Dict, Optional
 
-from modules.layer_3.suggestions import SuggestionEngine
+from dotenv import load_dotenv
+load_dotenv()
 
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+from modules.layer_3.suggestions import SuggestionEngine
 
 _ERI_EMOJI = {"Red": "🔴", "Orange": "🟠", "Yellow": "🟡"}
 
@@ -61,7 +62,8 @@ def push_playbook_to_slack(patterns: Optional[List[Dict]] = None,
     Send up to `limit` playbook patterns to the configured Slack webhook.
     Returns a small summary dict for logging.
     """
-    if not SLACK_WEBHOOK_URL or "input_here" in SLACK_WEBHOOK_URL:
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL", "")
+    if not webhook_url or "input_here" in webhook_url:
         print("[Playbook Slack] SLACK_WEBHOOK_URL not configured — skipping push.")
         return {"sent": 0, "skipped": True, "reason": "webhook_not_configured"}
 
@@ -76,7 +78,7 @@ def push_playbook_to_slack(patterns: Optional[List[Dict]] = None,
         payload = {"blocks": _build_blocks(p)}
         try:
             r = requests.post(
-                SLACK_WEBHOOK_URL,
+                webhook_url,
                 data=json.dumps(payload),
                 headers={"Content-Type": "application/json"},
                 timeout=10,
