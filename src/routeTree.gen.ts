@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SuggestionsRouteImport } from './routes/suggestions'
+import { Route as LearningCurveRouteImport } from './routes/learning-curve'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SuggestionsRoute = SuggestionsRouteImport.update({
   id: '/suggestions',
   path: '/suggestions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearningCurveRoute = LearningCurveRouteImport.update({
+  id: '/learning-curve',
+  path: '/learning-curve',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,27 +31,31 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/learning-curve': typeof LearningCurveRoute
   '/suggestions': typeof SuggestionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/learning-curve': typeof LearningCurveRoute
   '/suggestions': typeof SuggestionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/learning-curve': typeof LearningCurveRoute
   '/suggestions': typeof SuggestionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/suggestions'
+  fullPaths: '/' | '/learning-curve' | '/suggestions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/suggestions'
-  id: '__root__' | '/' | '/suggestions'
+  to: '/' | '/learning-curve' | '/suggestions'
+  id: '__root__' | '/' | '/learning-curve' | '/suggestions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LearningCurveRoute: typeof LearningCurveRoute
   SuggestionsRoute: typeof SuggestionsRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/suggestions'
       fullPath: '/suggestions'
       preLoaderRoute: typeof SuggestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learning-curve': {
+      id: '/learning-curve'
+      path: '/learning-curve'
+      fullPath: '/learning-curve'
+      preLoaderRoute: typeof LearningCurveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LearningCurveRoute: LearningCurveRoute,
   SuggestionsRoute: SuggestionsRoute,
 }
 export const routeTree = rootRouteImport

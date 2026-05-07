@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   Activity, AlertTriangle, Brain, Building2, CheckCircle2, Leaf,
-  Lightbulb, RefreshCw, Server, ShieldAlert, Sparkles, Users, Zap,
+  Lightbulb, LineChart as LineChartIcon, RefreshCw, Server, ShieldAlert, Sparkles, Users, Zap,
 } from "lucide-react";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
@@ -102,6 +102,13 @@ function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            to="/learning-curve"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+          >
+            <LineChartIcon className="h-4 w-4 text-primary" />
+            Learning Curve
+          </Link>
           <Link
             to="/suggestions"
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
