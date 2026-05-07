@@ -21,13 +21,15 @@ export const Route = createFileRoute("/")({
 });
 
 // ---------- Types matching backend /api/fikable/admin/dashboard ----------
-interface Employee {
-  employee_id: string;
-  role: string;
-  meeting_burden_hrs: number;
-  cognitive_load_tasks: number;
-  interruption_volume: number;
-  feedback_provided: boolean;
+// PRIVACY: backend never exposes individual employee identities.
+// Admin sees only aggregated metrics + role-grouped aggregates.
+interface RoleAggregate {
+  team_or_role: string;
+  headcount: number;
+  avg_meeting_hrs: number;
+  avg_interruptions: number;
+  high_burnout_risk_count: number;
+  status: "Critical" | "Stable" | string;
 }
 interface DashboardPayload {
   status: string;
@@ -48,7 +50,7 @@ interface DashboardPayload {
       proposed_policy_change: string;
       expected_roi: string;
     };
-    raw_employee_list: Employee[];
+    anonymized_role_aggregates: RoleAggregate[];
   };
 }
 
