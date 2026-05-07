@@ -149,7 +149,7 @@ function Dashboard() {
 
 // ---------- Content ----------
 function DashboardContent({ payload }: { payload: DashboardPayload["dashboard_data"] }) {
-  const { team_metrics, organizational_insight, raw_employee_list } = payload;
+  const { team_metrics, organizational_insight, anonymized_role_aggregates } = payload;
   const { total_headcount, department_averages, risk_distribution } = team_metrics;
 
   const riskPct = total_headcount
@@ -161,15 +161,21 @@ function DashboardContent({ payload }: { payload: DashboardPayload["dashboard_da
     { name: "High burnout risk", value: risk_distribution.high_burnout_risk, color: "var(--danger)" },
   ];
 
-  const empBars = raw_employee_list.map((e) => ({
-    name: e.employee_id.replace(/^EMP_\d+_/, ""),
-    meetings: e.meeting_burden_hrs,
-    interruptions: e.interruption_volume,
-    cognitive: e.cognitive_load_tasks,
+  const roleBars = anonymized_role_aggregates.map((r) => ({
+    name: r.team_or_role,
+    meetings: r.avg_meeting_hrs,
+    interruptions: r.avg_interruptions,
+    risk: r.high_burnout_risk_count,
   }));
 
   return (
     <>
+      {/* Privacy notice */}
+      <div className="mb-6 flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+        <ShieldAlert className="h-3.5 w-3.5 text-primary" />
+        Privacy-first view — no individual identities. All signals are aggregated by role.
+      </div>
+
       {/* KPI strip */}
       <section className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
         <Kpi icon={Users} label="Headcount" value={total_headcount} />
@@ -219,68 +225,60 @@ function DashboardContent({ payload }: { payload: DashboardPayload["dashboard_da
         </Panel>
       </section>
 
-      {/* Per-employee bar chart */}
+      {/* Per-role bar chart (anonymized) */}
       <section className="mb-8">
-        <Panel eyebrow="Per-employee · Layer 1 signals" title="Workload signals across the team" icon={Brain}>
+        <Panel eyebrow="Per-role · Anonymized aggregates" title="Workload signals across roles" icon={Brain}>
           <div className="h-[340px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={empBars} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+              <BarChart data={roleBars} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="meetings" name="Meeting hrs" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="interruptions" name="Interruptions" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="cognitive" name="High-prio tasks" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="meetings" name="Avg meeting hrs" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="interruptions" name="Avg interruptions" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="risk" name="High-risk count" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Panel>
       </section>
 
-      {/* Employee table */}
+      {/* Role aggregates table */}
       <section>
-        <Panel eyebrow="Raw employee list" title="Team roster" icon={Users}>
+        <Panel eyebrow="Role aggregates" title="Anonymized team breakdown" icon={Users}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  <th className="py-3 pr-4">Employee</th>
-                  <th className="py-3 pr-4">Role</th>
-                  <th className="py-3 pr-4 text-right">Meeting hrs</th>
-                  <th className="py-3 pr-4 text-right">High-prio tasks</th>
-                  <th className="py-3 pr-4 text-right">Interruptions</th>
-                  <th className="py-3 pr-4">Feedback</th>
+                  <th className="py-3 pr-4">Team / Role</th>
+                  <th className="py-3 pr-4 text-right">Headcount</th>
+                  <th className="py-3 pr-4 text-right">Avg meeting hrs</th>
+                  <th className="py-3 pr-4 text-right">Avg interruptions</th>
+                  <th className="py-3 pr-4 text-right">High-risk count</th>
                   <th className="py-3 pr-4">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {raw_employee_list.map((e) => {
-                  const burnout = e.meeting_burden_hrs > 6;
+                {anonymized_role_aggregates.map((r) => {
+                  const critical = r.status === "Critical";
                   return (
-                    <tr key={e.employee_id} className="border-b border-border/60 last:border-0">
-                      <td className="py-3 pr-4 font-medium">{e.employee_id}</td>
-                      <td className="py-3 pr-4 text-muted-foreground">{e.role}</td>
-                      <td className="py-3 pr-4 text-right tabular-nums">{e.meeting_burden_hrs}</td>
-                      <td className="py-3 pr-4 text-right tabular-nums">{e.cognitive_load_tasks}</td>
-                      <td className="py-3 pr-4 text-right tabular-nums">{e.interruption_volume}</td>
-                      <td className="py-3 pr-4">
-                        {e.feedback_provided ? (
-                          <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 className="h-3.5 w-3.5" /> Yes</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
+                    <tr key={r.team_or_role} className="border-b border-border/60 last:border-0">
+                      <td className="py-3 pr-4 font-medium">{r.team_or_role}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">{r.headcount}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">{r.avg_meeting_hrs}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">{r.avg_interruptions}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">{r.high_burnout_risk_count}</td>
                       <td className="py-3 pr-4">
                         <span
                           className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
                           style={{
-                            background: `color-mix(in oklab, ${burnout ? "var(--danger)" : "var(--success)"} 18%, transparent)`,
-                            color: burnout ? "var(--danger)" : "var(--success)",
+                            background: `color-mix(in oklab, ${critical ? "var(--danger)" : "var(--success)"} 18%, transparent)`,
+                            color: critical ? "var(--danger)" : "var(--success)",
                           }}
                         >
-                          {burnout ? "High risk" : "Healthy"}
+                          {r.status}
                         </span>
                       </td>
                     </tr>
