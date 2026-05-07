@@ -10,6 +10,7 @@ from classes.vector_db import ChromaVectorDB
 from modules.layer_1.normalizer import aggregate_and_normalize
 from modules.layer_2.analytics import AnalyticsEngine
 from modules.layer_3.application import FikableAction
+from modules.layer_3.admin import AdminAggregator
 
 from modules.integrations.slack_bot import SlackConnector
 
@@ -104,6 +105,47 @@ async def slack_interaction(payload: str = Form(...)):
         print(f"[Slack Webhook Error] {e}")
         raise HTTPException(status_code=500, detail="Failed to process Slack action")
 
+@app.get("/api/fikable/admin/dashboard")
+def trigger_admin_dashboard():
+    try:
+        print("\n=== Generating Admin Dashboard ===")
+        
+        # 1. Simulate a company of 5 employees using your diverse profiles
+        mock_company_roster = [
+            {"id": "EMP_01_SARAH", "profile": "burnout_meetings"},
+            {"id": "EMP_02_JOHN", "profile": "healthy"},
+            {"id": "EMP_03_EMMA", "profile": "burnout_isolation"},
+            {"id": "EMP_04_MIKE", "profile": "burnout_meetings"},
+            {"id": "EMP_05_LISA", "profile": "healthy"}
+        ]
+
+        # 2. Extract Layer 1 Data for all employees (Extremely fast, no LLM calls)
+        team_l1_data = []
+        for emp in mock_company_roster:
+            # We reuse your existing ETL normalizer!
+            payload = aggregate_and_normalize(emp["id"], profile=emp["profile"], interact_data=None)
+            team_l1_data.append(payload["metadata"])
+
+        # 3. Aggregate the math in Python
+        admin_engine = AdminAggregator(llm_url=OLLAMA_HOST_URL, llm_model=OLLAMA_MODEL_NAME)
+        aggregated_metrics = admin_engine.aggregate_team_metrics(team_l1_data)
+
+        # 4. Generate the Macro Insight with ONE LLM call
+        macro_insight = admin_engine.generate_organizational_insight(aggregated_metrics)
+
+        # 5. Return the beautiful God-View payload to Lovable
+        return {
+            "status": "success",
+            "dashboard_data": {
+                "team_metrics": aggregated_metrics,
+                "organizational_insight": macro_insight,
+                "raw_employee_list": team_l1_data # Send this so the UI can draw a table of users!
+            }
+        }
+
+    except Exception as e:
+        print(f"[Admin Dashboard Error] {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     print("========================================")
