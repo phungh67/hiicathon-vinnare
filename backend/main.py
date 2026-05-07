@@ -150,16 +150,29 @@ def trigger_admin_dashboard():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/fikable/admin/suggestions")
-def get_burnout_suggestions(enrich: bool = False):
+def get_burnout_suggestions(enrich: bool = False, push_slack: bool = True, slack_limit: int = 2):
     """
     Returns the catalog of 12 canonical burnout patterns + suggested
     interventions. Pass ?enrich=true to also generate a per-pattern
     LLM coaching script (slower; one Ollama call per pattern).
+
+    On successful fetch, also pushes `slack_limit` random patterns to the
+    configured Slack webhook (set push_slack=false to disable).
     """
     try:
         engine = SuggestionEngine(llm_url=OLLAMA_HOST_URL, llm_model=OLLAMA_MODEL_NAME)
         patterns = engine.list_patterns_enriched() if enrich else engine.list_patterns()
-        return {"status": "success", "count": len(patterns), "patterns": patterns}
+
+        slack_result = None
+        if push_slack:
+            slack_result = push_playbook_to_slack(patterns=patterns, limit=slack_limit, sample=True)
+
+        return {
+            "status": "success",
+            "count": len(patterns),
+            "patterns": patterns,
+            "slack_push": slack_result,
+        }
     except Exception as e:
         print(f"[Suggestions Error] {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
