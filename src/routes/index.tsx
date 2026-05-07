@@ -1,254 +1,142 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
-  Activity, AlertTriangle, BellRing, Brain, CalendarClock, ChevronRight,
-  Coffee, Leaf, ShieldAlert, Sparkles, TrendingUp, Users, UserCheck, Zap,
+  Activity, AlertTriangle, Brain, Building2, CheckCircle2, Leaf,
+  Lightbulb, RefreshCw, Server, ShieldAlert, Sparkles, Users, Zap,
 } from "lucide-react";
-import { ENERGY_TREND, MOCK_RESPONSES, TEAM_MEMBERS, type Profile } from "@/lib/mock-data";
-import { EnergyGauge } from "@/components/dashboard/EnergyGauge";
-import { TrendChart } from "@/components/dashboard/TrendChart";
-import { LoadRadar } from "@/components/dashboard/LoadRadar";
-import { TeamHeatmap } from "@/components/dashboard/TeamHeatmap";
+import {
+  Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from "recharts";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Fikable HR Console — Team Wellbeing & Burnout Risk" },
-      { name: "description", content: "HR & team-lead console: monitor team energy, cognitive load, burnout risk, and approve recovery actions across the org." },
+      { title: "Fikable HR Console — Live Team Wellbeing" },
+      { name: "description", content: "Live HR dashboard fetching team burnout risk, energy, and macro insights from the Fikable backend." },
     ],
   }),
   component: Dashboard,
 });
 
-// Map team members → backend profiles for drill-down
-const MEMBER_PROFILE: Record<string, Profile> = {
-  emp_001: "healthy",
-  emp_042: "burnout_meetings",
-  emp_117: "burnout_isolation",
-  emp_054: "healthy",
-  emp_088: "burnout_meetings",
-  emp_023: "healthy",
-};
+// ---------- Types matching backend /api/fikable/admin/dashboard ----------
+interface Employee {
+  employee_id: string;
+  role: string;
+  meeting_burden_hrs: number;
+  cognitive_load_tasks: number;
+  interruption_volume: number;
+  feedback_provided: boolean;
+}
+interface DashboardPayload {
+  status: string;
+  dashboard_data: {
+    team_metrics: {
+      total_headcount: number;
+      department_averages: {
+        meeting_burden_hrs: number;
+        cognitive_switches_per_hr: number;
+      };
+      risk_distribution: {
+        healthy: number;
+        high_burnout_risk: number;
+      };
+    };
+    organizational_insight: {
+      macro_risk_identified: string;
+      proposed_policy_change: string;
+      expected_roi: string;
+    };
+    raw_employee_list: Employee[];
+  };
+}
+
+const DEFAULT_API = "http://localhost:8000";
+const STORAGE_KEY = "fikable_api_base";
+
+async function fetchDashboard(base: string): Promise<DashboardPayload> {
+  const res = await fetch(`${base.replace(/\/$/, "")}/api/fikable/admin/dashboard`);
+  if (!res.ok) throw new Error(`Backend ${res.status}: ${await res.text()}`);
+  return res.json();
+}
 
 function Dashboard() {
-  const [selectedId, setSelectedId] = useState<string>("emp_042");
-  const [running, setRunning] = useState(false);
+  const [apiBase, setApiBase] = useState(DEFAULT_API);
+  const [draft, setDraft] = useState(DEFAULT_API);
 
-  const selectedMember = TEAM_MEMBERS.find((m) => m.id === selectedId)!;
-  const profile: Profile = MEMBER_PROFILE[selectedId] ?? "healthy";
-  const data = useMemo(() => MOCK_RESPONSES[profile], [profile]);
-  const trend = ENERGY_TREND[profile];
-  const l1 = data.pipeline_metrics.l1_normalized_data;
-  const l2 = data.pipeline_metrics.l2_digital_twin_state;
-  const l3 = data.l3_application_payloads;
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+    if (stored) { setApiBase(stored); setDraft(stored); }
+  }, []);
 
-  // Org-wide aggregates
-  const orgSize = TEAM_MEMBERS.length;
-  const avgEnergy = Math.round(TEAM_MEMBERS.reduce((s, m) => s + m.energy, 0) / orgSize);
-  const avgLoad = Math.round(TEAM_MEMBERS.reduce((s, m) => s + m.load, 0) / orgSize);
-  const atRisk = TEAM_MEMBERS.filter((m) => m.status === "Red").length;
-  const watch = TEAM_MEMBERS.filter((m) => m.status === "Amber").length;
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ["admin-dashboard", apiBase],
+    queryFn: () => fetchDashboard(apiBase),
+    retry: 0,
+    refetchOnWindowFocus: false,
+  });
 
-  const runPipeline = () => {
-    setRunning(true);
-    setTimeout(() => setRunning(false), 1100);
+  const saveBase = () => {
+    localStorage.setItem(STORAGE_KEY, draft);
+    setApiBase(draft);
   };
-
-  // Alerts queue derived from team
-  const alerts = TEAM_MEMBERS
-    .filter((m) => m.status !== "Green")
-    .map((m) => {
-      const p = MEMBER_PROFILE[m.id] ?? "healthy";
-      const r = MOCK_RESPONSES[p];
-      return {
-        id: m.id,
-        name: m.name,
-        role: m.role,
-        severity: m.status,
-        action: r.l3_application_payloads.manager_approval_queue.action.action_type,
-        proposal: r.l3_application_payloads.manager_approval_queue.action.proposal_text,
-        risk: r.pipeline_metrics.l1_normalized_data.flight_risk,
-      };
-    });
 
   return (
     <main className="mx-auto max-w-[1500px] px-6 py-10 md:py-14">
       {/* Header */}
-      <header className="mb-10 flex flex-wrap items-end justify-between gap-6">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-6">
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
             <Leaf className="h-3.5 w-3.5 text-primary" />
             Fikable · HR & Team-Lead Console
           </div>
           <h1 className="font-display text-5xl font-semibold tracking-tight md:text-6xl">
-            Team wellbeing, <span className="italic text-accent">at a glance.</span>
+            Live team wellbeing, <span className="italic text-accent">straight from the pipeline.</span>
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-muted-foreground md:text-base">
-            Monitor every team member's energy and cognitive load, surface burnout risk early,
-            and approve recovery actions — powered by the L1 → L2 → L3 backend pipeline.
+            Real-time fetch from <code className="rounded bg-muted px-1.5 py-0.5 text-xs">/api/fikable/admin/dashboard</code> —
+            aggregated team metrics, macro burnout risk, and an LLM-generated policy recommendation.
           </p>
         </div>
         <button
-          onClick={runPipeline}
-          disabled={running}
+          onClick={() => refetch()}
+          disabled={isFetching}
           className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60"
         >
-          <Sparkles className={`h-4 w-4 ${running ? "animate-spin" : ""}`} />
-          {running ? "Syncing pipeline…" : "Sync /api/fikable/full_sync"}
+          <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Syncing…" : "Refresh"}
         </button>
       </header>
 
-      {/* Org KPI strip */}
-      <section className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi icon={Users} label="Team size" value={orgSize} />
-        <Kpi icon={Zap} label="Avg energy" value={avgEnergy} suffix="/100" tone="primary" />
-        <Kpi icon={Brain} label="Avg cognitive load" value={avgLoad} suffix="/100" tone="accent" />
-        <Kpi
-          icon={ShieldAlert}
-          label="At risk · watch"
-          value={`${atRisk} · ${watch}`}
-          tone={atRisk > 0 ? "danger" : watch > 0 ? "warning" : "success"}
+      {/* API base configurator */}
+      <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card/50 p-4 text-sm">
+        <Server className="h-4 w-4 text-primary" />
+        <span className="text-muted-foreground">Backend URL</span>
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="min-w-[280px] flex-1 rounded-lg border border-border bg-background px-3 py-1.5 font-mono text-xs"
+          placeholder="http://localhost:8000"
         />
-      </section>
+        <button
+          onClick={saveBase}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+        >
+          Save & fetch
+        </button>
+        <span className="text-xs text-muted-foreground">
+          Tip: must be reachable from this browser (CORS-enabled).
+        </span>
+      </div>
 
-      {/* Team heatmap (primary HR view) */}
-      <section className="mb-8">
-        <Panel eyebrow="Org-wide · Layer 3 aggregates" title="Team energy heatmap" icon={Users}>
-          <p className="mb-5 text-sm text-muted-foreground">
-            Click a member to drill into their digital twin, signals, and pending recovery actions.
-          </p>
-          <SelectableTeamHeatmap selectedId={selectedId} onSelect={setSelectedId} />
-        </Panel>
-      </section>
+      {/* Loading / Error states */}
+      {isLoading && <SkeletonState />}
+      {error && <ErrorState message={(error as Error).message} apiBase={apiBase} />}
 
-      {/* Action queue */}
-      <section className="mb-8">
-        <Panel eyebrow="Layer 3 · Manager approval queue" title="Pending recovery actions" icon={CalendarClock}>
-          {alerts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No pending actions — your team is in flow.</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {alerts.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-start justify-between gap-4 py-4">
-                  <div className="flex items-start gap-3">
-                    <span
-                      className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ background: a.severity === "Red" ? "var(--danger)" : "var(--warning)" }}
-                    />
-                    <div>
-                      <p className="text-sm font-semibold">
-                        {a.name} <span className="font-normal text-muted-foreground">· {a.role}</span>
-                      </p>
-                      <p className="mt-1 text-sm text-foreground/80">{a.proposal}</p>
-                      <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-wider">
-                        <Tag>{a.action}</Tag>
-                        <Tag tone="warning">Flight risk: {a.risk}</Tag>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedId(a.id)}
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                    >
-                      Review
-                    </button>
-                    <button
-                      disabled
-                      title="Coming soon"
-                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground opacity-60"
-                    >
-                      Approve
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-      </section>
-
-      {/* Drill-down on selected member */}
-      <section>
-        <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-muted-foreground">
-          <UserCheck className="h-3.5 w-3.5 text-primary" />
-          Member drill-down
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-foreground">{selectedMember.name}</span>
-          <span className="text-muted-foreground">· {selectedMember.role}</span>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <Panel className="lg:col-span-5" eyebrow="Layer 2 · Digital twin" title="Current capacity" icon={Activity}>
-            <div className="grid grid-cols-2 gap-4">
-              <EnergyGauge value={l2.energy_level} label="Energy" />
-              <EnergyGauge value={l2.cognitive_load} label="Cognitive Load" inverse />
-            </div>
-            <p className="mt-6 rounded-xl border border-border bg-muted/40 p-4 text-sm italic text-foreground/80">
-              "{l2.state_summary}"
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-              <Stat label="Role" value={l1.role} />
-              <Stat label="Flight risk" value={l1.flight_risk} />
-            </div>
-          </Panel>
-
-          <Panel className="lg:col-span-7" eyebrow="7-day trajectory" title="Energy vs. cognitive load" icon={TrendingUp}>
-            <TrendChart data={trend} />
-          </Panel>
-
-          <Panel className="lg:col-span-5" eyebrow="Layer 1 · Normalized signals" title="Stress signal radar" icon={Brain}>
-            <LoadRadar data={l1} />
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <Stat label="Switches/hr" value={l1.switches_per_hr} />
-              <Stat label="Busy work" value={`${l1.busy_work_pct}%`} />
-              <Stat label="Interruptions" value={l1.interruption_volume} />
-              <Stat label="After-hours" value={l1.after_hours ? "Yes" : "No"} />
-            </div>
-          </Panel>
-
-          <div className="grid gap-6 lg:col-span-7">
-            <Panel eyebrow="Recommended HR action" title={l3.manager_approval_queue.action.action_type} icon={AlertTriangle}>
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-sm text-foreground/85">{l3.manager_approval_queue.action.proposal_text}</p>
-                <span className="shrink-0 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-warning">
-                  {l3.manager_approval_queue.approval_status.replace("_", " ")}
-                </span>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Target · <span className="text-foreground">{l3.manager_approval_queue.action.target_meeting_or_time}</span>
-              </p>
-              <div className="mt-4 flex gap-2">
-                <button disabled title="Coming soon" className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground opacity-60">Approve</button>
-                <button disabled title="Coming soon" className="rounded-lg border border-border px-4 py-2 text-xs font-medium opacity-60">Defer</button>
-                <button disabled title="Coming soon" className="rounded-lg border border-border px-4 py-2 text-xs font-medium opacity-60">Send 1:1 invite</button>
-              </div>
-            </Panel>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <Panel eyebrow="Suggested nudge to send" title={l3.active_notifications.content.nudge_title} icon={Coffee} accent>
-                <p className="text-sm text-foreground/85">{l3.active_notifications.content.nudge_message}</p>
-                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-                  <BellRing className="h-3.5 w-3.5" />
-                  Channels · Slack · Email · Desktop
-                </div>
-              </Panel>
-
-              <Panel eyebrow="Workload guidance" title={l3.employee_dashboard.data.suggested_task_mode} icon={Sparkles}>
-                <p className="text-sm text-foreground/85">
-                  Afternoon forecast: <span className="font-medium text-foreground">{l3.employee_dashboard.data.afternoon_forecast}</span>
-                </p>
-                <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-                    style={{ width: `${l3.employee_dashboard.data.current_energy_score}%` }}
-                  />
-                </div>
-              </Panel>
-            </div>
-          </div>
-        </div>
-      </section>
+      {data && data.dashboard_data && (
+        <DashboardContent payload={data.dashboard_data} />
+      )}
 
       <footer className="mt-12 text-center text-xs text-muted-foreground">
         Fikable HR Console · L1 Aggregator → L2 Cognitive Engine → L3 Action Layer
@@ -257,70 +145,188 @@ function Dashboard() {
   );
 }
 
-function SelectableTeamHeatmap({ selectedId, onSelect }: { selectedId: string; onSelect: (id: string) => void }) {
-  const tone = (s: string) => (s === "Green" ? "var(--success)" : s === "Amber" ? "var(--warning)" : "var(--danger)");
+// ---------- Content ----------
+function DashboardContent({ payload }: { payload: DashboardPayload["dashboard_data"] }) {
+  const { team_metrics, organizational_insight, raw_employee_list } = payload;
+  const { total_headcount, department_averages, risk_distribution } = team_metrics;
+
+  const riskPct = total_headcount
+    ? Math.round((risk_distribution.high_burnout_risk / total_headcount) * 100)
+    : 0;
+
+  const pieData = [
+    { name: "Healthy", value: risk_distribution.healthy, color: "var(--success)" },
+    { name: "High burnout risk", value: risk_distribution.high_burnout_risk, color: "var(--danger)" },
+  ];
+
+  const empBars = raw_employee_list.map((e) => ({
+    name: e.employee_id.replace(/^EMP_\d+_/, ""),
+    meetings: e.meeting_burden_hrs,
+    interruptions: e.interruption_volume,
+    cognitive: e.cognitive_load_tasks,
+  }));
+
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-      {TEAM_MEMBERS.map((m) => {
-        const active = m.id === selectedId;
-        return (
-          <button
-            key={m.id}
-            onClick={() => onSelect(m.id)}
-            className={`group relative overflow-hidden rounded-xl border bg-card p-4 text-left transition-shadow hover:shadow-md ${
-              active ? "border-primary ring-2 ring-primary/30" : "border-border"
-            }`}
-          >
-            <div className="absolute left-0 top-0 h-full w-1" style={{ background: tone(m.status) }} />
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-semibold leading-tight">{m.name}</p>
-                <p className="text-xs text-muted-foreground">{m.role}</p>
+    <>
+      {/* KPI strip */}
+      <section className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Kpi icon={Users} label="Headcount" value={total_headcount} />
+        <Kpi icon={Activity} label="Avg meeting hrs" value={department_averages.meeting_burden_hrs} suffix="h" tone="primary" />
+        <Kpi icon={Brain} label="Avg switches/hr" value={department_averages.cognitive_switches_per_hr} tone="accent" />
+        <Kpi
+          icon={ShieldAlert}
+          label="At burnout risk"
+          value={`${risk_distribution.high_burnout_risk}/${total_headcount}`}
+          suffix={` · ${riskPct}%`}
+          tone={riskPct >= 40 ? "danger" : riskPct > 0 ? "warning" : "success"}
+        />
+      </section>
+
+      {/* Macro insight + risk distribution */}
+      <section className="mb-8 grid gap-6 lg:grid-cols-12">
+        <Panel className="lg:col-span-7" eyebrow="Layer 3 · Chief HR AI" title="Organizational insight" icon={Lightbulb} accent>
+          <div className="space-y-4">
+            <div>
+              <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <AlertTriangle className="h-3 w-3 text-warning" /> Macro risk identified
               </div>
-              <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
-                style={{ background: `color-mix(in oklab, ${tone(m.status)} 18%, transparent)`, color: tone(m.status) }}
-              >
-                {m.status}
-              </span>
+              <p className="text-base text-foreground/90">{organizational_insight.macro_risk_identified}</p>
             </div>
-            <div className="mt-3 space-y-1.5">
-              <Bar label="Energy" value={m.energy} color="var(--chart-1)" />
-              <Bar label="Load" value={m.load} color="var(--chart-2)" />
+            <div className="rounded-xl border border-border bg-background/50 p-4">
+              <div className="mb-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Proposed policy change</div>
+              <p className="font-display text-2xl font-semibold text-accent">
+                {organizational_insight.proposed_policy_change}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{organizational_insight.expected_roi}</p>
             </div>
-          </button>
-        );
-      })}
+          </div>
+        </Panel>
+
+        <Panel className="lg:col-span-5" eyebrow="Layer 1 · Aggregated" title="Risk distribution" icon={Building2}>
+          <div className="h-[260px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={95} paddingAngle={3}>
+                  {pieData.map((d) => <Cell key={d.name} fill={d.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+      </section>
+
+      {/* Per-employee bar chart */}
+      <section className="mb-8">
+        <Panel eyebrow="Per-employee · Layer 1 signals" title="Workload signals across the team" icon={Brain}>
+          <div className="h-[340px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={empBars} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+                <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="meetings" name="Meeting hrs" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="interruptions" name="Interruptions" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="cognitive" name="High-prio tasks" fill="var(--chart-3)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+      </section>
+
+      {/* Employee table */}
+      <section>
+        <Panel eyebrow="Raw employee list" title="Team roster" icon={Users}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <th className="py-3 pr-4">Employee</th>
+                  <th className="py-3 pr-4">Role</th>
+                  <th className="py-3 pr-4 text-right">Meeting hrs</th>
+                  <th className="py-3 pr-4 text-right">High-prio tasks</th>
+                  <th className="py-3 pr-4 text-right">Interruptions</th>
+                  <th className="py-3 pr-4">Feedback</th>
+                  <th className="py-3 pr-4">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {raw_employee_list.map((e) => {
+                  const burnout = e.meeting_burden_hrs > 6;
+                  return (
+                    <tr key={e.employee_id} className="border-b border-border/60 last:border-0">
+                      <td className="py-3 pr-4 font-medium">{e.employee_id}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">{e.role}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">{e.meeting_burden_hrs}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">{e.cognitive_load_tasks}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums">{e.interruption_volume}</td>
+                      <td className="py-3 pr-4">
+                        {e.feedback_provided ? (
+                          <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 className="h-3.5 w-3.5" /> Yes</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+                          style={{
+                            background: `color-mix(in oklab, ${burnout ? "var(--danger)" : "var(--success)"} 18%, transparent)`,
+                            color: burnout ? "var(--danger)" : "var(--success)",
+                          }}
+                        >
+                          {burnout ? "High risk" : "Healthy"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      </section>
+    </>
+  );
+}
+
+// ---------- States ----------
+function SkeletonState() {
+  return (
+    <div className="grid gap-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-28 animate-pulse rounded-2xl border border-border bg-card/50" />
+        ))}
+      </div>
+      <div className="h-[320px] animate-pulse rounded-2xl border border-border bg-card/50" />
     </div>
   );
 }
 
-function Bar({ label, value, color }: { label: string; value: number; color: string }) {
+function ErrorState({ message, apiBase }: { message: string; apiBase: string }) {
   return (
-    <div>
-      <div className="mb-0.5 flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-        <span>{label}</span>
-        <span className="tabular-nums">{value}</span>
+    <div className="rounded-2xl border border-danger/40 bg-danger/5 p-6 text-sm">
+      <div className="mb-2 flex items-center gap-2 font-semibold text-danger">
+        <AlertTriangle className="h-4 w-4" /> Could not reach backend
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
-      </div>
+      <p className="text-foreground/80">
+        Failed to fetch from <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{apiBase}/api/fikable/admin/dashboard</code>
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">Error: {message}</p>
+      <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+        <li>Make sure the FastAPI backend is running on the URL above.</li>
+        <li>Enable CORS in FastAPI for this origin (add <code>CORSMiddleware</code> with <code>allow_origins=["*"]</code> for testing).</li>
+        <li>If running on <code>localhost:8000</code>, this UI must be opened from a browser on the same machine.</li>
+      </ul>
     </div>
   );
 }
 
-function Tag({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "warning" }) {
-  const c = tone === "warning" ? "var(--warning)" : "var(--muted-foreground)";
-  return (
-    <span
-      className="rounded-full px-2 py-0.5 font-medium"
-      style={{ background: `color-mix(in oklab, ${c} 14%, transparent)`, color: c }}
-    >
-      {children}
-    </span>
-  );
-}
-
+// ---------- Reusable bits ----------
 function Kpi({
   icon: Icon, label, value, suffix, tone = "default",
 }: {
@@ -362,15 +368,6 @@ function Panel({
       </div>
       <h3 className="font-display text-2xl font-semibold leading-tight">{title}</h3>
       <div className="mt-5">{children}</div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-3 py-2">
-      <span>{label}</span>
-      <span className="font-medium tabular-nums text-foreground">{value}</span>
     </div>
   );
 }
