@@ -1,0 +1,84 @@
+import json
+import uuid
+import os
+import uvicorn
+from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+from classes.vector_db import ChromaVectorDB
+from modules.layer_1.normalizer import aggregate_and_normalize
+from modules.layer_2.analytics import AnalyticsEngine
+from modules.layer_3.application import FikableAction
+
+OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL", "http://localhost:11434")
+OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "gemma4")
+
+app = FastAPI(title="Fikable API")
+db = ChromaVectorDB()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class AnalyticRequest(BaseModel):
+    employee_id: str
+    profile: str = "burnout"
+
+@app.post("/api/fikable/full_sync")
+def trigger_pipeline(request: AnalyticRequest):
+    try:
+        l1_payload = aggregate_and_normalize(request.employee_id, profile=request.profile, interact_data=None)
+
+        l2_engine = AnalyticsEngine(db_client=db, llm_url=OLLAMA_HOST_URL, llm_model=OLLAMA_MODEL_NAME)
+        l2_state = l2_engine.evaluate_cognitive_load(l1_payload["metadata"])
+
+        recent_history = db.query_history(request.employee_id, current_telemetry="energy trends", n_results=3)
+        l2_sim = l2_engine.predict_future_scenario(l2_state, "Delay next meeting by 1 hour", recent_history)
+
+        l2_engine.learning_reinforcement_loop(request.employee_id, "TODAY", l1_payload["metadata"], l2_state)
+
+        l3_application = FikableAction(llm_url=OLLAMA_HOST_URL, llm_model=OLLAMA_MODEL_NAME)
+
+        rebalance_action = l3_application.automatically_rebalance(l2_state, l2_sim)
+        dashboard_data = l3_application.personal_interference(l2_state)
+        fika_nudge = l3_application.fika_layer(l2_state)
+        team_heatmap = l3_application.team_insights(request.employee_id, l2_state)
+
+        return {
+            "status": "success",
+            "pipeline_metrics": {
+                "l1_normalized_data": l1_payload["metadata"],
+                "l2_digital_twin_state": l2_state,
+            },
+            "l3_application_payloads": {
+                "manager_approval_queue": rebalance_action, 
+                "employee_dashboard": dashboard_data,       
+                "active_notifications": fika_nudge,         
+                "team_aggregates": team_heatmap             
+            }
+        }
+        
+    except Exception as e:
+        print(f"[Fatal Error] {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+def health_check():
+    return {"status": "Fikable Multi-Layer Pipeline is online"}
+
+
+if __name__ == "__main__":
+    print("========================================")
+    print("🚀 Starting Fikable Backend Server...")
+    print(f"🔗 Connect Lovable UI to: http://0.0.0.0:8000")
+    print(f"🧠 Local LLM Target: {OLLAMA_MODEL_NAME} at {OLLAMA_HOST_URL}")
+    print("========================================")
+    
+    # Run the FastAPI app using Uvicorn
+    # 'reload=True' is great for hackathons so it auto-restarts when you save a file
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
