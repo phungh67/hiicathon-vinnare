@@ -62,7 +62,8 @@ def push_playbook_to_slack(patterns: Optional[List[Dict]] = None,
     Send up to `limit` playbook patterns to the configured Slack webhook.
     Returns a small summary dict for logging.
     """
-    if not SLACK_WEBHOOK_URL or "input_here" in SLACK_WEBHOOK_URL:
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL", "")
+    if not webhook_url or "input_here" in webhook_url:
         print("[Playbook Slack] SLACK_WEBHOOK_URL not configured — skipping push.")
         return {"sent": 0, "skipped": True, "reason": "webhook_not_configured"}
 
