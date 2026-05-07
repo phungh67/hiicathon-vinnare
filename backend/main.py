@@ -5,6 +5,7 @@ import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 from classes.vector_db import ChromaVectorDB
 from modules.layer_1.normalizer import aggregate_and_normalize
@@ -14,8 +15,12 @@ from modules.layer_3.admin import AdminAggregator
 
 from modules.integrations.slack_bot import SlackConnector
 
+load_dotenv
+
 OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL", "http://localhost:11434")
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "gemma4")
+SERVER_PORT = int(os.getenv("SERVER_PORT", 8000))
+SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 
 app = FastAPI(title="Fikable API")
 db = ChromaVectorDB()
@@ -150,11 +155,9 @@ def trigger_admin_dashboard():
 if __name__ == "__main__":
     print("========================================")
     print("🚀 Starting Fikable Backend Server...")
-    print(f"🔗 Connect Lovable UI to: http://0.0.0.0:8000")
+    print(f"🔗 Connect Lovable UI to: http://{SERVER_HOST}:{SERVER_PORT}")
     print(f"🧠 Local LLM Target: {OLLAMA_MODEL_NAME} at {OLLAMA_HOST_URL}")
     print("========================================")
     
-    # Run the FastAPI app using Uvicorn
-    # 'reload=True' is great for hackathons so it auto-restarts when you save a file
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host=SERVER_HOST, port=SERVER_PORT, reload=True)
 
