@@ -4,7 +4,7 @@ class ChromaVectorDB:
     """
     Definition for a vector database powered by ChromaDB
     """
-    def __inti__(self):
+    def __init__(self):
         self.client = chromadb.Client()
         self.collection = self.client.get_or_create_collection(name="employee_baseline")
         self.verbose_log = 0
