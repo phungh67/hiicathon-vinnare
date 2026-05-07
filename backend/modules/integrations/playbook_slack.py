@@ -78,7 +78,7 @@ def push_playbook_to_slack(patterns: Optional[List[Dict]] = None,
         payload = {"blocks": _build_blocks(p)}
         try:
             r = requests.post(
-                SLACK_WEBHOOK_URL,
+                webhook_url,
                 data=json.dumps(payload),
                 headers={"Content-Type": "application/json"},
                 timeout=10,
