@@ -2,17 +2,24 @@ import json
 import os
 
 class MockDataManager:
-    def __init__(self, filepath="mock_profiles.json"):
-        self.filepath = filepath
+    def __init__(self, filepath=None):
+        # Bulletproof path resolution: dynamically find the data folder from the root
+        if filepath is None:
+            # __file__ is in modules/layer_1/, so we go up two levels to the root
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            self.filepath = os.path.join(base_dir, "data", "mock_profiles.json")
+        else:
+            self.filepath = filepath
+            
         self.profiles = {}
         self._load_data()
 
     def _load_data(self):
         """Loads the JSON file into memory."""
         try:
-            # Adjust path if your JSON is in a different folder
             if os.path.exists(self.filepath):
-                with open(self.filepath, 'r') as file:
+                # Ensure utf-8 encoding just in case there are special characters (like emojis)
+                with open(self.filepath, 'r', encoding='utf-8') as file:
                     self.profiles = json.load(file)
                 print(f"[MockManager] Loaded {len(self.profiles)} diverse profiles from {self.filepath}")
             else:

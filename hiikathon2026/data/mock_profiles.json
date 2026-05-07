@@ -1,20 +1,20 @@
 {
   "healthy": {
-    "calendar": { "total_meetings": 3, "hours_in_meetings": 2.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": False },
+    "calendar": { "total_meetings": 3, "hours_in_meetings": 2.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
     "task": { "switches_per_hr": 3, "busy_work_percentage": 20, "task_volume_vs_peers": "+0%", "avg_completion_time_hrs": 12 },
-    "comm": { "after_8pm_activity": False, "mgr_update_pings": 1, "kudos_mentions": 3, "non_work_channel_activity": "15%", "mgr_response_delay_hrs": 4, "urgent_blind_invites": 0 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 1, "kudos_mentions": 3, "non_work_channel_activity": "15%", "mgr_response_delay_hrs": 4, "urgent_blind_invites": 0 },
     "hris": { "role": "Senior Engineer", "tenure_years": 3, "flight_risk_score": "Low" }
   },
   "burnout_meetings": {
-    "calendar": { "total_meetings": 9, "hours_in_meetings": 7.5, "back_to_back_15m_syncs": 6, "strictly_enforced_9_to_5": True },
+    "calendar": { "total_meetings": 9, "hours_in_meetings": 7.5, "back_to_back_15m_syncs": 6, "strictly_enforced_9_to_5": true },
     "task": { "switches_per_hr": 15, "busy_work_percentage": 60, "task_volume_vs_peers": "+10%", "avg_completion_time_hrs": 36 },
-    "comm": { "after_8pm_activity": True, "mgr_update_pings": 5, "kudos_mentions": 0, "non_work_channel_activity": "2%", "mgr_response_delay_hrs": 24, "urgent_blind_invites": 3 },
+    "comm": { "after_8pm_activity": true, "mgr_update_pings": 5, "kudos_mentions": 0, "non_work_channel_activity": "2%", "mgr_response_delay_hrs": 24, "urgent_blind_invites": 3 },
     "hris": { "role": "Product Manager", "tenure_years": 1, "flight_risk_score": "High" }
   },
   "burnout_isolation": {
-    "calendar": { "total_meetings": 1, "hours_in_meetings": 0.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": False },
+    "calendar": { "total_meetings": 1, "hours_in_meetings": 0.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
     "task": { "switches_per_hr": 2, "busy_work_percentage": 80, "task_volume_vs_peers": "-20%", "avg_completion_time_hrs": 72 },
-    "comm": { "after_8pm_activity": False, "mgr_update_pings": 0, "kudos_mentions": 0, "non_work_channel_activity": "0%", "mgr_response_delay_hrs": 72, "urgent_blind_invites": 0 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 0, "kudos_mentions": 0, "non_work_channel_activity": "0%", "mgr_response_delay_hrs": 72, "urgent_blind_invites": 0 },
     "hris": { "role": "Remote QA Tester", "tenure_years": 2, "flight_risk_score": "Critical" }
   }
 }
