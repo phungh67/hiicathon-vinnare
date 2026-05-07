@@ -15,7 +15,7 @@ class FikableAction:
         self.OLLAMA_MODEL_NAME = llm_model if llm_model is not None else os.getenv("OLLAMA_MODEL_NAME", "gemma4")
 
     def _call_llm(self, system_prompt: str, user_data: str) -> dict:
-        """Helper function for calling LLM"""
+        """Helper function for calling LLM with robust Markdown stripping"""
         payload = {
             "model": self.OLLAMA_MODEL_NAME,
             "messages": [
@@ -27,7 +27,18 @@ class FikableAction:
         }
         try:
             response = requests.post(self.OLLAMA_HOST_URL, json=payload).json()
-            return json.loads(response['message']['content'])
+            raw_content = response['message']['content']
+            
+            # THE FIX: ROBUST JSON PARSER
+            start_idx = raw_content.find('{')
+            end_idx = raw_content.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1:
+                clean_json = raw_content[start_idx:end_idx+1]
+                return json.loads(clean_json)
+            else:
+                return json.loads(raw_content)
+                
         except Exception as e:
             print(f"[L3 LLM Error] {e}")
             return {}

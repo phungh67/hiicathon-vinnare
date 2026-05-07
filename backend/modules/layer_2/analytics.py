@@ -15,6 +15,17 @@ class AnalyticsEngine:
         self.OLLAMA_HOST_URL = llm_url if llm_url is not None else os.getenv("OLLAMA_HOST_URL", "http://localhost:11434")
         self.OLLAMA_MODEL_NAME = llm_model if llm_model is not None else os.getenv("OLLAMA_MODEL_NAME", "gemma4")
 
+    def _parse_llm_json(self, raw_content: str, fallback: dict) -> dict:
+        """Bulletproof parser to strip markdown ```json blocks"""
+        try:
+            start_idx = raw_content.find('{')
+            end_idx = raw_content.rfind('}')
+            if start_idx != -1 and end_idx != -1:
+                return json.loads(raw_content[start_idx:end_idx+1])
+            return json.loads(raw_content)
+        except Exception as e:
+            print(f"[JSON Parse Error] {e} | Raw Output: {raw_content}")
+            return fallback
     
     def evaluate_cognitive_load(self, normalized_data: dict) -> dict:
         """
