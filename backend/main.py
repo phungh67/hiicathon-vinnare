@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from classes.vector_db import ChromaVectorDB
 from modules.layer_1.normalizer import aggregate_and_normalize
-from modules.layer_1.mock_manager import mock_db
+from modules.layer_1.mock_manager import mock_db  # <-- IMPORT MOCK DB
 from modules.layer_2.analytics import AnalyticsEngine
 from modules.layer_3.application import FikableAction
 from modules.layer_3.admin import AdminAggregator
@@ -20,7 +20,6 @@ load_dotenv()
 
 base_url = os.getenv("OLLAMA_HOST_URL", "http://localhost:11434").rstrip('/')
 OLLAMA_HOST_URL = f"{base_url}/api/chat" if not base_url.endswith("/api/chat") else base_url
-
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "gemma4")
 SERVER_PORT = int(os.getenv("SERVER_PORT", 8000))
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
@@ -84,29 +83,18 @@ def health_check():
 
 @app.post("/api/slack/interactive")
 async def slack_interaction(payload: str = Form(...)):
-    """
-    Catches the button click from the employee's Slack app.
-    Slack sends this as 'application/x-www-form-urlencoded' with a 'payload' JSON string.
-    """
     try:
-        # 1. Parse the incoming click data from Slack
         action_data = json.loads(payload)
-        
-        # 2. Extract what the user clicked
         user_name = action_data['user']['username']
-        action_clicked = action_data['actions'][0]['value'] # e.g., 'accept_fika' or 'snooze_fika'
+        action_clicked = action_data['actions'][0]['value'] 
         
         print(f"\n[Slack Webhook] User {user_name} clicked: {action_clicked}")
 
-        # 3. Handle the Business Logic
         if action_clicked == "accept_fika":
             print(f"✅ Logging positive intervention compliance for {user_name}.")
-            # Here you could call your Vector DB to store that the nudge was successful!
-            # db.store_baseline(user_id, "nudge_success", "User accepted 15m Fika break.")
         elif action_clicked == "snooze_fika":
             print(f"⏳ {user_name} snoozed the break. Increasing risk score for next cycle.")
 
-        # Slack requires an empty 200 OK response to know the button click worked
         return {}
 
     except Exception as e:
@@ -118,21 +106,17 @@ def trigger_admin_dashboard():
     try:
         print("\n=== Generating Admin Dashboard ===")
         
-        # ==========================================
-        # THE FIX: DYNAMICALLY LOAD THE ENTIRE DATASET
-        # ==========================================
+        # 1. DYNAMICALLY LOAD THE ENTIRE 15-PROFILE DATASET
         mock_company_roster = []
-        
-        # Loop through every single profile in your mock_profiles.json
         for idx, profile_name in enumerate(mock_db.profiles.keys(), start=1):
             mock_company_roster.append({
-                "id": f"EMP_{idx:03d}_{profile_name.upper()[:8]}", # e.g. EMP_001_BURNOUT_
+                "id": f"ANON_EMP_{idx:03d}", # Anonymous ID used internally for processing
                 "profile": profile_name
             })
             
-        print(f"[Admin Engine] Ingesting company roster of {len(mock_company_roster)} employees...")
+        print(f"[Admin Engine] Ingesting anonymous roster of {len(mock_company_roster)} employees...")
 
-        # 2. Extract Layer 1 Data for all employees (This processes all 15 instantly!)
+        # 2. Extract Layer 1 Data
         team_l1_data = []
         for emp in mock_company_roster:
             payload = aggregate_and_normalize(emp["id"], profile=emp["profile"], interact_data=None)
@@ -141,18 +125,21 @@ def trigger_admin_dashboard():
         # 3. Aggregate the math in Python
         admin_engine = AdminAggregator(llm_url=OLLAMA_HOST_URL, llm_model=OLLAMA_MODEL_NAME)
         aggregated_metrics = admin_engine.aggregate_team_metrics(team_l1_data)
+        
+        # 4. PRIVACY LAYER: Anonymize and Group by Role
+        anonymized_team_data = admin_engine.anonymize_and_group_data(team_l1_data)
 
-        # 4. Generate the Macro Insight with ONE LLM call
+        # 5. Generate the Macro Insight with ONE LLM call
         print("[Admin Engine] Sending macro-metrics to Ollama for organizational strategy...")
         macro_insight = admin_engine.generate_organizational_insight(aggregated_metrics)
 
-        # 5. Return the God-View payload
+        # 6. Return the strictly anonymized payload
         return {
             "status": "success",
             "dashboard_data": {
                 "team_metrics": aggregated_metrics,
                 "organizational_insight": macro_insight,
-                "raw_employee_list": team_l1_data 
+                "anonymized_role_aggregates": anonymized_team_data # Completely replaces raw_employee_list!
             }
         }
 
@@ -168,4 +155,3 @@ if __name__ == "__main__":
     print("========================================")
     
     uvicorn.run("main:app", host=SERVER_HOST, port=SERVER_PORT, reload=True)
-

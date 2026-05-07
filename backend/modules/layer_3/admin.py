@@ -18,11 +18,10 @@ class AdminAggregator:
         if total_employees == 0:
             return {}
 
-        avg_meeting_hrs = sum(emp['meeting_burden_hrs'] for emp in team_l1_data) / total_employees
-        avg_switches = sum(emp['cognitive_switches'] for emp in team_l1_data) / total_employees
+        avg_meeting_hrs = sum(emp.get('meeting_burden_hrs', 0) for emp in team_l1_data) / total_employees
+        avg_switches = sum(emp.get('cognitive_switches', 0) for emp in team_l1_data) / total_employees
         
-        # Determine risk distribution based on meeting load (hackathon logic)
-        burnout_count = sum(1 for emp in team_l1_data if emp['meeting_burden_hrs'] > 6)
+        burnout_count = sum(1 for emp in team_l1_data if emp.get('meeting_burden_hrs', 0) > 6)
         healthy_count = total_employees - burnout_count
 
         return {
@@ -36,6 +35,47 @@ class AdminAggregator:
                 "high_burnout_risk": burnout_count
             }
         }
+
+    def anonymize_and_group_data(self, team_l1_data: list) -> list:
+        """
+        PRIVACY LAYER: Groups individual data by role to protect anonymity.
+        Strips out all employee IDs and returns aggregated team-level stats.
+        """
+        grouped = {}
+        for emp in team_l1_data:
+            role = emp.get('role', 'Unknown Role')
+            if role not in grouped:
+                grouped[role] = {
+                    "headcount": 0,
+                    "total_meeting_hrs": 0,
+                    "total_switches": 0,
+                    "total_interruptions": 0,
+                    "high_risk_count": 0
+                }
+            
+            grouped[role]["headcount"] += 1
+            grouped[role]["total_meeting_hrs"] += emp.get('meeting_burden_hrs', 0)
+            grouped[role]["total_switches"] += emp.get('cognitive_switches', 0)
+            grouped[role]["total_interruptions"] += emp.get('interruption_volume', 0)
+            
+            # Simple threshold flag for high risk based on L1 metrics
+            if emp.get('meeting_burden_hrs', 0) > 6 or emp.get('interruption_volume', 0) > 5:
+                grouped[role]["high_risk_count"] += 1
+
+        # Calculate averages and format for the frontend UI
+        anonymized_roster = []
+        for role, metrics in grouped.items():
+            hc = metrics["headcount"]
+            anonymized_roster.append({
+                "team_or_role": role,
+                "headcount": hc,
+                "avg_meeting_hrs": round(metrics["total_meeting_hrs"] / hc, 1),
+                "avg_interruptions": round(metrics["total_interruptions"] / hc, 1),
+                "high_burnout_risk_count": metrics["high_risk_count"],
+                "status": "Critical" if (metrics["high_risk_count"] / hc) > 0.5 else "Stable"
+            })
+            
+        return anonymized_roster
 
     def generate_organizational_insight(self, aggregated_metrics: dict) -> dict:
         """
@@ -70,11 +110,10 @@ class AdminAggregator:
                 clean_json = raw_content[start_idx:end_idx+1]
                 return json.loads(clean_json)
             else:
-                return json.loads(raw_content) # Fallback
+                return json.loads(raw_content) 
 
         except Exception as e:
             print(f"[Admin LLM Error] {e}")
-            # This prints exactly what the LLM said so you can debug it in the terminal!
             raw_output = response.get('message', {}).get('content', 'No content') if 'response' in locals() else 'Request failed'
             print(f"[Raw Output] {raw_output}")
             
