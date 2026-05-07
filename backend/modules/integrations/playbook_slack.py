@@ -15,9 +15,10 @@ import random
 import requests
 from typing import List, Dict, Optional
 
-from modules.layer_3.suggestions import SuggestionEngine
+from dotenv import load_dotenv
+load_dotenv()
 
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+from modules.layer_3.suggestions import SuggestionEngine
 
 _ERI_EMOJI = {"Red": "🔴", "Orange": "🟠", "Yellow": "🟡"}
 
