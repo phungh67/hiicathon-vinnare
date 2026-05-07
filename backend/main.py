@@ -3,13 +3,15 @@ import uuid
 import os
 import uvicorn
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 
 from classes.vector_db import ChromaVectorDB
 from modules.layer_1.normalizer import aggregate_and_normalize
 from modules.layer_2.analytics import AnalyticsEngine
 from modules.layer_3.application import FikableAction
+
+from modules.integrations.slack_bot import SlackConnector
 
 OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL", "http://localhost:11434")
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "gemma4")
@@ -71,6 +73,37 @@ def trigger_pipeline(request: AnalyticRequest):
 def health_check():
     return {"status": "Fikable Multi-Layer Pipeline is online"}
 
+@app.post("/api/slack/interactive")
+async def slack_interaction(payload: str = Form(...)):
+    """
+    Catches the button click from the employee's Slack app.
+    Slack sends this as 'application/x-www-form-urlencoded' with a 'payload' JSON string.
+    """
+    try:
+        # 1. Parse the incoming click data from Slack
+        action_data = json.loads(payload)
+        
+        # 2. Extract what the user clicked
+        user_name = action_data['user']['username']
+        action_clicked = action_data['actions'][0]['value'] # e.g., 'accept_fika' or 'snooze_fika'
+        
+        print(f"\n[Slack Webhook] User {user_name} clicked: {action_clicked}")
+
+        # 3. Handle the Business Logic
+        if action_clicked == "accept_fika":
+            print(f"✅ Logging positive intervention compliance for {user_name}.")
+            # Here you could call your Vector DB to store that the nudge was successful!
+            # db.store_baseline(user_id, "nudge_success", "User accepted 15m Fika break.")
+        elif action_clicked == "snooze_fika":
+            print(f"⏳ {user_name} snoozed the break. Increasing risk score for next cycle.")
+
+        # Slack requires an empty 200 OK response to know the button click worked
+        return {}
+
+    except Exception as e:
+        print(f"[Slack Webhook Error] {e}")
+        raise HTTPException(status_code=500, detail="Failed to process Slack action")
+
 
 if __name__ == "__main__":
     print("========================================")
@@ -82,3 +115,4 @@ if __name__ == "__main__":
     # Run the FastAPI app using Uvicorn
     # 'reload=True' is great for hackathons so it auto-restarts when you save a file
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

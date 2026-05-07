@@ -4,6 +4,8 @@ import os
 
 from typing import Optional
 
+from modules.integrations.slack_bot import SlackConnector
+
 class FikableAction:
     """
     Definition for action layer of the application, will execute and manage workloads to reduce stress
@@ -86,6 +88,13 @@ class FikableAction:
         2. "nudge_message": 1 sentence encouraging a specific type of break."""
 
         llm_response = self._call_llm(system_prompt, json.dumps(l2_state))
+
+        SlackConnector.send_fika_nudge(
+            employee_name="Sarah", # Map this from your HRIS data in production
+            nudge_title=llm_response.get("nudge_title", "Time for a break!"),
+            nudge_message=llm_response.get("nudge_message", "Step away from the screen."),
+            employee_id=employee_id
+        )
 
         return {
             "module": "Fika Layer",
