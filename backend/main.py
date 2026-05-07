@@ -15,7 +15,7 @@ from modules.layer_3.admin import AdminAggregator
 
 from modules.integrations.slack_bot import SlackConnector
 
-load_dotenv
+load_dotenv()
 
 OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL", "http://localhost:11434")
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "gemma4")
