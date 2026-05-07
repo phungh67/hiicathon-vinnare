@@ -13,6 +13,7 @@ from modules.layer_1.mock_manager import mock_db  # <-- IMPORT MOCK DB
 from modules.layer_2.analytics import AnalyticsEngine
 from modules.layer_3.application import FikableAction
 from modules.layer_3.admin import AdminAggregator
+from modules.layer_3.suggestions import SuggestionEngine
 
 from modules.integrations.slack_bot import SlackConnector
 
@@ -146,6 +147,22 @@ def trigger_admin_dashboard():
     except Exception as e:
         print(f"[Admin Dashboard Error] {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/fikable/admin/suggestions")
+def get_burnout_suggestions(enrich: bool = False):
+    """
+    Returns the catalog of 12 canonical burnout patterns + suggested
+    interventions. Pass ?enrich=true to also generate a per-pattern
+    LLM coaching script (slower; one Ollama call per pattern).
+    """
+    try:
+        engine = SuggestionEngine(llm_url=OLLAMA_HOST_URL, llm_model=OLLAMA_MODEL_NAME)
+        patterns = engine.list_patterns_enriched() if enrich else engine.list_patterns()
+        return {"status": "success", "count": len(patterns), "patterns": patterns}
+    except Exception as e:
+        print(f"[Suggestions Error] {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     print("========================================")
