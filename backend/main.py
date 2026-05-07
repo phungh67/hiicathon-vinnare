@@ -83,6 +83,33 @@ def trigger_pipeline(request: AnalyticRequest):
 def health_check():
     return {"status": "Fikable Multi-Layer Pipeline is online"}
 
+# --- Auto-push playbook to Slack on a background timer ---
+import threading
+
+PLAYBOOK_PUSH_INTERVAL = int(os.getenv("PLAYBOOK_PUSH_INTERVAL", "3600"))  # seconds
+PLAYBOOK_PUSH_LIMIT = int(os.getenv("PLAYBOOK_PUSH_LIMIT", "2"))
+PLAYBOOK_PUSH_ENABLED = os.getenv("PLAYBOOK_PUSH_ENABLED", "true").lower() == "true"
+
+def _playbook_push_loop():
+    import time
+    # Initial fire shortly after boot
+    time.sleep(5)
+    while True:
+        try:
+            push_playbook_to_slack(limit=PLAYBOOK_PUSH_LIMIT, sample=True)
+        except Exception as ex:
+            print(f"[Playbook Loop Error] {ex}")
+        time.sleep(PLAYBOOK_PUSH_INTERVAL)
+
+@app.on_event("startup")
+def _start_playbook_pusher():
+    if not PLAYBOOK_PUSH_ENABLED:
+        print("[Playbook Loop] disabled via PLAYBOOK_PUSH_ENABLED=false")
+        return
+    t = threading.Thread(target=_playbook_push_loop, daemon=True)
+    t.start()
+    print(f"[Playbook Loop] ✅ started — every {PLAYBOOK_PUSH_INTERVAL}s, limit={PLAYBOOK_PUSH_LIMIT}")
+
 @app.post("/api/slack/interactive")
 async def slack_interaction(payload: str = Form(...)):
     try:
