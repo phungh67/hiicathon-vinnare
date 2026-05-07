@@ -4,7 +4,7 @@ import json
 import os
 
 # For the hackathon, create a free Slack workspace and grab an Incoming Webhook URL
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/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")
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "input_here_hehee")
 
 class SlackConnector:
     @staticmethod

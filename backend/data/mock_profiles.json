@@ -1,20 +1,92 @@
 {
-  "healthy": {
+  "healthy_baseline": {
     "calendar": { "total_meetings": 3, "hours_in_meetings": 2.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
     "task": { "switches_per_hr": 3, "busy_work_percentage": 20, "task_volume_vs_peers": "+0%", "avg_completion_time_hrs": 12 },
     "comm": { "after_8pm_activity": false, "mgr_update_pings": 1, "kudos_mentions": 3, "non_work_channel_activity": "15%", "mgr_response_delay_hrs": 4, "urgent_blind_invites": 0 },
-    "hris": { "role": "Senior Engineer", "tenure_years": 3, "flight_risk_score": "Low" }
+    "hris": { "role": "Software Engineer", "tenure_years": 3, "flight_risk_score": "Low" }
   },
-  "burnout_meetings": {
-    "calendar": { "total_meetings": 9, "hours_in_meetings": 7.5, "back_to_back_15m_syncs": 6, "strictly_enforced_9_to_5": true },
-    "task": { "switches_per_hr": 15, "busy_work_percentage": 60, "task_volume_vs_peers": "+10%", "avg_completion_time_hrs": 36 },
-    "comm": { "after_8pm_activity": true, "mgr_update_pings": 5, "kudos_mentions": 0, "non_work_channel_activity": "2%", "mgr_response_delay_hrs": 24, "urgent_blind_invites": 3 },
-    "hris": { "role": "Product Manager", "tenure_years": 1, "flight_risk_score": "High" }
+  "burnout_meeting_overload": {
+    "calendar": { "total_meetings": 11, "hours_in_meetings": 8.5, "back_to_back_15m_syncs": 6, "strictly_enforced_9_to_5": true },
+    "task": { "switches_per_hr": 14, "busy_work_percentage": 15, "task_volume_vs_peers": "-10%", "avg_completion_time_hrs": 48 },
+    "comm": { "after_8pm_activity": true, "mgr_update_pings": 2, "kudos_mentions": 1, "non_work_channel_activity": "5%", "mgr_response_delay_hrs": 24, "urgent_blind_invites": 1 },
+    "hris": { "role": "Engineering Manager", "tenure_years": 4, "flight_risk_score": "High" }
+  },
+  "burnout_micromanaged": {
+    "calendar": { "total_meetings": 4, "hours_in_meetings": 3.0, "back_to_back_15m_syncs": 2, "strictly_enforced_9_to_5": true },
+    "task": { "switches_per_hr": 18, "busy_work_percentage": 70, "task_volume_vs_peers": "+5%", "avg_completion_time_hrs": 24 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 15, "kudos_mentions": 0, "non_work_channel_activity": "0%", "mgr_response_delay_hrs": 1, "urgent_blind_invites": 0 },
+    "hris": { "role": "Junior Developer", "tenure_years": 1, "flight_risk_score": "Critical" }
   },
   "burnout_isolation": {
-    "calendar": { "total_meetings": 1, "hours_in_meetings": 0.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
-    "task": { "switches_per_hr": 2, "busy_work_percentage": 80, "task_volume_vs_peers": "-20%", "avg_completion_time_hrs": 72 },
-    "comm": { "after_8pm_activity": false, "mgr_update_pings": 0, "kudos_mentions": 0, "non_work_channel_activity": "0%", "mgr_response_delay_hrs": 72, "urgent_blind_invites": 0 },
+    "calendar": { "total_meetings": 0, "hours_in_meetings": 0.0, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 2, "busy_work_percentage": 10, "task_volume_vs_peers": "-20%", "avg_completion_time_hrs": 72 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 0, "kudos_mentions": 0, "non_work_channel_activity": "0%", "mgr_response_delay_hrs": 96, "urgent_blind_invites": 0 },
     "hris": { "role": "Remote QA Tester", "tenure_years": 2, "flight_risk_score": "Critical" }
+  },
+  "burnout_unrecognized_carry": {
+    "calendar": { "total_meetings": 2, "hours_in_meetings": 1.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 5, "busy_work_percentage": 5, "task_volume_vs_peers": "+60%", "avg_completion_time_hrs": 8 },
+    "comm": { "after_8pm_activity": true, "mgr_update_pings": 1, "kudos_mentions": 0, "non_work_channel_activity": "2%", "mgr_response_delay_hrs": 48, "urgent_blind_invites": 0 },
+    "hris": { "role": "Senior Staff Engineer", "tenure_years": 5, "flight_risk_score": "High" }
+  },
+  "burnout_toxic_culture": {
+    "calendar": { "total_meetings": 6, "hours_in_meetings": 5.0, "back_to_back_15m_syncs": 4, "strictly_enforced_9_to_5": true },
+    "task": { "switches_per_hr": 8, "busy_work_percentage": 40, "task_volume_vs_peers": "+10%", "avg_completion_time_hrs": 36 },
+    "comm": { "after_8pm_activity": true, "mgr_update_pings": 8, "kudos_mentions": 0, "non_work_channel_activity": "0%", "mgr_response_delay_hrs": 2, "urgent_blind_invites": 7 },
+    "hris": { "role": "Product Owner", "tenure_years": 2, "flight_risk_score": "Critical" }
+  },
+  "burnout_context_switcher": {
+    "calendar": { "total_meetings": 5, "hours_in_meetings": 4.0, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 25, "busy_work_percentage": 50, "task_volume_vs_peers": "+20%", "avg_completion_time_hrs": 60 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 6, "kudos_mentions": 1, "non_work_channel_activity": "20%", "mgr_response_delay_hrs": 12, "urgent_blind_invites": 2 },
+    "hris": { "role": "DevOps Engineer", "tenure_years": 3, "flight_risk_score": "Medium" }
+  },
+  "timezone_martyr": {
+    "calendar": { "total_meetings": 4, "hours_in_meetings": 4.0, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 6, "busy_work_percentage": 15, "task_volume_vs_peers": "+5%", "avg_completion_time_hrs": 24 },
+    "comm": { "after_8pm_activity": true, "mgr_update_pings": 3, "kudos_mentions": 2, "non_work_channel_activity": "10%", "mgr_response_delay_hrs": 18, "urgent_blind_invites": 0 },
+    "hris": { "role": "Offshore Lead", "tenure_years": 4, "flight_risk_score": "High" }
+  },
+  "fairness_gap_workhorse": {
+    "calendar": { "total_meetings": 3, "hours_in_meetings": 2.0, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 4, "busy_work_percentage": 85, "task_volume_vs_peers": "+45%", "avg_completion_time_hrs": 12 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 0, "kudos_mentions": 0, "non_work_channel_activity": "5%", "mgr_response_delay_hrs": 120, "urgent_blind_invites": 0 },
+    "hris": { "role": "Data Analyst", "tenure_years": 2, "flight_risk_score": "High" }
+  },
+  "coasting_veteran": {
+    "calendar": { "total_meetings": 2, "hours_in_meetings": 1.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 1, "busy_work_percentage": 10, "task_volume_vs_peers": "-40%", "avg_completion_time_hrs": 72 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 0, "kudos_mentions": 5, "non_work_channel_activity": "40%", "mgr_response_delay_hrs": 24, "urgent_blind_invites": 0 },
+    "hris": { "role": "Principal Architect", "tenure_years": 8, "flight_risk_score": "Low" }
+  },
+  "new_hire_chaos": {
+    "calendar": { "total_meetings": 7, "hours_in_meetings": 6.0, "back_to_back_15m_syncs": 3, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 12, "busy_work_percentage": 60, "task_volume_vs_peers": "-10%", "avg_completion_time_hrs": 96 },
+    "comm": { "after_8pm_activity": true, "mgr_update_pings": 1, "kudos_mentions": 0, "non_work_channel_activity": "5%", "mgr_response_delay_hrs": 72, "urgent_blind_invites": 4 },
+    "hris": { "role": "Marketing Specialist", "tenure_years": 0, "flight_risk_score": "Medium" }
+  },
+  "healthy_high_performer": {
+    "calendar": { "total_meetings": 4, "hours_in_meetings": 3.0, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 4, "busy_work_percentage": 5, "task_volume_vs_peers": "+25%", "avg_completion_time_hrs": 10 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 2, "kudos_mentions": 8, "non_work_channel_activity": "25%", "mgr_response_delay_hrs": 2, "urgent_blind_invites": 0 },
+    "hris": { "role": "Lead Designer", "tenure_years": 3, "flight_risk_score": "Low" }
+  },
+  "burnout_always_on": {
+    "calendar": { "total_meetings": 6, "hours_in_meetings": 5.0, "back_to_back_15m_syncs": 2, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 10, "busy_work_percentage": 30, "task_volume_vs_peers": "+15%", "avg_completion_time_hrs": 18 },
+    "comm": { "after_8pm_activity": true, "mgr_update_pings": 4, "kudos_mentions": 2, "non_work_channel_activity": "5%", "mgr_response_delay_hrs": 8, "urgent_blind_invites": 1 },
+    "hris": { "role": "Sales Director", "tenure_years": 4, "flight_risk_score": "High" }
+  },
+  "healthy_remote_worker": {
+    "calendar": { "total_meetings": 2, "hours_in_meetings": 1.5, "back_to_back_15m_syncs": 0, "strictly_enforced_9_to_5": false },
+    "task": { "switches_per_hr": 3, "busy_work_percentage": 15, "task_volume_vs_peers": "+5%", "avg_completion_time_hrs": 16 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 1, "kudos_mentions": 4, "non_work_channel_activity": "35%", "mgr_response_delay_hrs": 6, "urgent_blind_invites": 0 },
+    "hris": { "role": "Backend Engineer", "tenure_years": 2, "flight_risk_score": "Low" }
+  },
+  "burnout_admin_burden": {
+    "calendar": { "total_meetings": 4, "hours_in_meetings": 3.0, "back_to_back_15m_syncs": 1, "strictly_enforced_9_to_5": true },
+    "task": { "switches_per_hr": 20, "busy_work_percentage": 95, "task_volume_vs_peers": "+30%", "avg_completion_time_hrs": 8 },
+    "comm": { "after_8pm_activity": false, "mgr_update_pings": 10, "kudos_mentions": 0, "non_work_channel_activity": "10%", "mgr_response_delay_hrs": 24, "urgent_blind_invites": 2 },
+    "hris": { "role": "HR Coordinator", "tenure_years": 1, "flight_risk_score": "Critical" }
   }
 }
