@@ -42,7 +42,7 @@ class AdminAggregator:
         Asks the LLM to act as a fractional HR executive and propose a company-wide policy change.
         """
         system_prompt = """You are the Fikable Chief HR AI.
-        Look at this aggregated team data. Identify the biggest macro-level burnout risk and propose ONE organizational policy change (e.g., 'No-Meeting Wednesdays', 'Mandatory Fika at 3PM').
+        Look at this aggregated team data. Identify the biggest macro-level burnout risk and propose ONE organizational policy change.
         
         Respond in strict JSON:
         1. "macro_risk_identified": 1 sentence explaining the team's biggest systemic issue.
@@ -61,7 +61,25 @@ class AdminAggregator:
 
         try:
             response = requests.post(self.OLLAMA_HOST_URL, json=payload).json()
-            return json.loads(response['message']['content'])
+            raw_content = response['message']['content']
+
+            start_idx = raw_content.find('{')
+            end_idx = raw_content.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1:
+                clean_json = raw_content[start_idx:end_idx+1]
+                return json.loads(clean_json)
+            else:
+                return json.loads(raw_content) # Fallback
+
         except Exception as e:
             print(f"[Admin LLM Error] {e}")
-            return {"macro_risk_identified": "Data processing error", "proposed_policy_change": "N/A", "expected_roi": "N/A"}
+            # This prints exactly what the LLM said so you can debug it in the terminal!
+            raw_output = response.get('message', {}).get('content', 'No content') if 'response' in locals() else 'Request failed'
+            print(f"[Raw Output] {raw_output}")
+            
+            return {
+                "macro_risk_identified": "Data formatting error.", 
+                "proposed_policy_change": "Run analysis again.", 
+                "expected_roi": "N/A"
+            }

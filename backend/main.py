@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 from classes.vector_db import ChromaVectorDB
 from modules.layer_1.normalizer import aggregate_and_normalize
+from modules.layer_1.mock_manager import mock_db
 from modules.layer_2.analytics import AnalyticsEngine
 from modules.layer_3.application import FikableAction
 from modules.layer_3.admin import AdminAggregator
@@ -17,7 +18,9 @@ from modules.integrations.slack_bot import SlackConnector
 
 load_dotenv()
 
-OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST_URL", "http://localhost:11434")
+base_url = os.getenv("OLLAMA_HOST_URL", "http://localhost:11434").rstrip('/')
+OLLAMA_HOST_URL = f"{base_url}/api/chat" if not base_url.endswith("/api/chat") else base_url
+
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "gemma4")
 SERVER_PORT = int(os.getenv("SERVER_PORT", 8000))
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
@@ -115,19 +118,23 @@ def trigger_admin_dashboard():
     try:
         print("\n=== Generating Admin Dashboard ===")
         
-        # 1. Simulate a company of 5 employees using your diverse profiles
-        mock_company_roster = [
-            {"id": "EMP_01_SARAH", "profile": "burnout_meetings"},
-            {"id": "EMP_02_JOHN", "profile": "healthy"},
-            {"id": "EMP_03_EMMA", "profile": "burnout_isolation"},
-            {"id": "EMP_04_MIKE", "profile": "burnout_meetings"},
-            {"id": "EMP_05_LISA", "profile": "healthy"}
-        ]
+        # ==========================================
+        # THE FIX: DYNAMICALLY LOAD THE ENTIRE DATASET
+        # ==========================================
+        mock_company_roster = []
+        
+        # Loop through every single profile in your mock_profiles.json
+        for idx, profile_name in enumerate(mock_db.profiles.keys(), start=1):
+            mock_company_roster.append({
+                "id": f"EMP_{idx:03d}_{profile_name.upper()[:8]}", # e.g. EMP_001_BURNOUT_
+                "profile": profile_name
+            })
+            
+        print(f"[Admin Engine] Ingesting company roster of {len(mock_company_roster)} employees...")
 
-        # 2. Extract Layer 1 Data for all employees (Extremely fast, no LLM calls)
+        # 2. Extract Layer 1 Data for all employees (This processes all 15 instantly!)
         team_l1_data = []
         for emp in mock_company_roster:
-            # We reuse your existing ETL normalizer!
             payload = aggregate_and_normalize(emp["id"], profile=emp["profile"], interact_data=None)
             team_l1_data.append(payload["metadata"])
 
@@ -136,15 +143,16 @@ def trigger_admin_dashboard():
         aggregated_metrics = admin_engine.aggregate_team_metrics(team_l1_data)
 
         # 4. Generate the Macro Insight with ONE LLM call
+        print("[Admin Engine] Sending macro-metrics to Ollama for organizational strategy...")
         macro_insight = admin_engine.generate_organizational_insight(aggregated_metrics)
 
-        # 5. Return the beautiful God-View payload to Lovable
+        # 5. Return the God-View payload
         return {
             "status": "success",
             "dashboard_data": {
                 "team_metrics": aggregated_metrics,
                 "organizational_insight": macro_insight,
-                "raw_employee_list": team_l1_data # Send this so the UI can draw a table of users!
+                "raw_employee_list": team_l1_data 
             }
         }
 
