@@ -16,6 +16,7 @@ from modules.layer_3.admin import AdminAggregator
 from modules.layer_3.suggestions import SuggestionEngine
 
 from modules.integrations.slack_bot import SlackConnector
+from modules.integrations.playbook_slack import push_playbook_to_slack
 
 load_dotenv()
 
