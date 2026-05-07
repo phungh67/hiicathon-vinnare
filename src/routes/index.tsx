@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  Activity, AlertTriangle, BellRing, Brain, CalendarClock, Coffee,
-  Leaf, Sparkles, TrendingUp, Users, Zap,
+  Activity, AlertTriangle, BellRing, Brain, CalendarClock, ChevronRight,
+  Coffee, Leaf, ShieldAlert, Sparkles, TrendingUp, Users, UserCheck, Zap,
 } from "lucide-react";
-import { ENERGY_TREND, MOCK_RESPONSES, type Profile } from "@/lib/mock-data";
+import { ENERGY_TREND, MOCK_RESPONSES, TEAM_MEMBERS, type Profile } from "@/lib/mock-data";
 import { EnergyGauge } from "@/components/dashboard/EnergyGauge";
 import { TrendChart } from "@/components/dashboard/TrendChart";
 import { LoadRadar } from "@/components/dashboard/LoadRadar";
@@ -13,187 +13,311 @@ import { TeamHeatmap } from "@/components/dashboard/TeamHeatmap";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Fikable — Cognitive Load & Energy Dashboard" },
-      { name: "description", content: "Visualize the Fikable multi-layer pipeline: digital twin energy, cognitive load, fika nudges, and team heatmap." },
+      { title: "Fikable HR Console — Team Wellbeing & Burnout Risk" },
+      { name: "description", content: "HR & team-lead console: monitor team energy, cognitive load, burnout risk, and approve recovery actions across the org." },
     ],
   }),
   component: Dashboard,
 });
 
-const PROFILES: { id: Profile; label: string; hint: string }[] = [
-  { id: "healthy", label: "Healthy", hint: "Balanced flow" },
-  { id: "burnout_meetings", label: "Meeting overload", hint: "Burnout signals" },
-  { id: "burnout_isolation", label: "Isolation", hint: "Disengagement" },
-];
+// Map team members → backend profiles for drill-down
+const MEMBER_PROFILE: Record<string, Profile> = {
+  emp_001: "healthy",
+  emp_042: "burnout_meetings",
+  emp_117: "burnout_isolation",
+  emp_054: "healthy",
+  emp_088: "burnout_meetings",
+  emp_023: "healthy",
+};
 
 function Dashboard() {
-  const [profile, setProfile] = useState<Profile>("burnout_meetings");
+  const [selectedId, setSelectedId] = useState<string>("emp_042");
   const [running, setRunning] = useState(false);
+
+  const selectedMember = TEAM_MEMBERS.find((m) => m.id === selectedId)!;
+  const profile: Profile = MEMBER_PROFILE[selectedId] ?? "healthy";
   const data = useMemo(() => MOCK_RESPONSES[profile], [profile]);
   const trend = ENERGY_TREND[profile];
   const l1 = data.pipeline_metrics.l1_normalized_data;
   const l2 = data.pipeline_metrics.l2_digital_twin_state;
   const l3 = data.l3_application_payloads;
 
+  // Org-wide aggregates
+  const orgSize = TEAM_MEMBERS.length;
+  const avgEnergy = Math.round(TEAM_MEMBERS.reduce((s, m) => s + m.energy, 0) / orgSize);
+  const avgLoad = Math.round(TEAM_MEMBERS.reduce((s, m) => s + m.load, 0) / orgSize);
+  const atRisk = TEAM_MEMBERS.filter((m) => m.status === "Red").length;
+  const watch = TEAM_MEMBERS.filter((m) => m.status === "Amber").length;
+
   const runPipeline = () => {
     setRunning(true);
     setTimeout(() => setRunning(false), 1100);
   };
 
+  // Alerts queue derived from team
+  const alerts = TEAM_MEMBERS
+    .filter((m) => m.status !== "Green")
+    .map((m) => {
+      const p = MEMBER_PROFILE[m.id] ?? "healthy";
+      const r = MOCK_RESPONSES[p];
+      return {
+        id: m.id,
+        name: m.name,
+        role: m.role,
+        severity: m.status,
+        action: r.l3_application_payloads.manager_approval_queue.action.action_type,
+        proposal: r.l3_application_payloads.manager_approval_queue.action.proposal_text,
+        risk: r.pipeline_metrics.l1_normalized_data.flight_risk,
+      };
+    });
+
   return (
-    <main className="mx-auto max-w-[1400px] px-6 py-10 md:py-14">
+    <main className="mx-auto max-w-[1500px] px-6 py-10 md:py-14">
       {/* Header */}
       <header className="mb-10 flex flex-wrap items-end justify-between gap-6">
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
             <Leaf className="h-3.5 w-3.5 text-primary" />
-            Fikable · Multi-Layer Wellness Pipeline
+            Fikable · HR & Team-Lead Console
           </div>
           <h1 className="font-display text-5xl font-semibold tracking-tight md:text-6xl">
-            The Digital Twin <span className="italic text-accent">of energy.</span>
+            Team wellbeing, <span className="italic text-accent">at a glance.</span>
           </h1>
-          <p className="mt-3 max-w-xl text-sm text-muted-foreground md:text-base">
-            Real-time cognitive load, burnout forecasting, and gentle Fika nudges — visualized from the L1 → L2 → L3 backend pipeline.
+          <p className="mt-3 max-w-2xl text-sm text-muted-foreground md:text-base">
+            Monitor every team member's energy and cognitive load, surface burnout risk early,
+            and approve recovery actions — powered by the L1 → L2 → L3 backend pipeline.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-3">
-          <div className="flex gap-1 rounded-full border border-border bg-card/60 p-1 backdrop-blur">
-            {PROFILES.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setProfile(p.id)}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                  profile === p.id
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={runPipeline}
-            disabled={running}
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60"
-          >
-            <Sparkles className={`h-4 w-4 ${running ? "animate-spin" : ""}`} />
-            {running ? "Running pipeline…" : "Run /api/fikable/full_sync"}
-          </button>
-        </div>
+        <button
+          onClick={runPipeline}
+          disabled={running}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60"
+        >
+          <Sparkles className={`h-4 w-4 ${running ? "animate-spin" : ""}`} />
+          {running ? "Syncing pipeline…" : "Sync /api/fikable/full_sync"}
+        </button>
       </header>
 
-      {/* Top KPI strip */}
+      {/* Org KPI strip */}
       <section className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi icon={Zap} label="Energy" value={`${l2.energy_level}`} suffix="/100" tone="primary" />
-        <Kpi icon={Brain} label="Cognitive Load" value={`${l2.cognitive_load}`} suffix="/100" tone="accent" />
-        <Kpi icon={CalendarClock} label="Meeting hrs today" value={`${l1.meeting_burden_hrs}`} suffix="h" />
+        <Kpi icon={Users} label="Team size" value={orgSize} />
+        <Kpi icon={Zap} label="Avg energy" value={avgEnergy} suffix="/100" tone="primary" />
+        <Kpi icon={Brain} label="Avg cognitive load" value={avgLoad} suffix="/100" tone="accent" />
         <Kpi
-          icon={AlertTriangle}
-          label="Flight risk"
-          value={l1.flight_risk}
-          tone={l1.flight_risk === "Low" ? "success" : l1.flight_risk === "High" ? "warning" : "danger"}
+          icon={ShieldAlert}
+          label="At risk · watch"
+          value={`${atRisk} · ${watch}`}
+          tone={atRisk > 0 ? "danger" : watch > 0 ? "warning" : "success"}
         />
       </section>
 
-      {/* Main grid */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Digital Twin */}
-        <Panel
-          className="lg:col-span-5"
-          eyebrow="Layer 2 · Digital twin"
-          title="Current capacity"
-          icon={Activity}
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <EnergyGauge value={l2.energy_level} label="Energy" />
-            <EnergyGauge value={l2.cognitive_load} label="Cognitive Load" inverse />
-          </div>
-          <p className="mt-6 rounded-xl border border-border bg-muted/40 p-4 text-sm italic text-foreground/80">
-            “{l2.state_summary}”
-          </p>
-        </Panel>
-
-        {/* Trend */}
-        <Panel
-          className="lg:col-span-7"
-          eyebrow="7-day trajectory"
-          title="Energy vs. cognitive load"
-          icon={TrendingUp}
-        >
-          <TrendChart data={trend} />
-        </Panel>
-
-        {/* Stress radar */}
-        <Panel
-          className="lg:col-span-5"
-          eyebrow="Layer 1 · Normalized signals"
-          title="Stress signal radar"
-          icon={Brain}
-        >
-          <LoadRadar data={l1} />
-          <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <Stat label="Switches/hr" value={l1.switches_per_hr} />
-            <Stat label="Busy work" value={`${l1.busy_work_pct}%`} />
-            <Stat label="Interruptions" value={l1.interruption_volume} />
-            <Stat label="After-hours" value={l1.after_hours ? "Yes" : "No"} />
-          </div>
-        </Panel>
-
-        {/* L3 actions */}
-        <div className="grid gap-6 lg:col-span-7">
-          <Panel eyebrow="Layer 3 · Manager queue" title={l3.manager_approval_queue.action.action_type} icon={CalendarClock}>
-            <div className="flex items-start justify-between gap-4">
-              <p className="text-sm text-foreground/85">{l3.manager_approval_queue.action.proposal_text}</p>
-              <span className="shrink-0 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-warning">
-                {l3.manager_approval_queue.approval_status.replace("_", " ")}
-              </span>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Target · <span className="text-foreground">{l3.manager_approval_queue.action.target_meeting_or_time}</span>
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:opacity-90">Approve</button>
-              <button className="rounded-lg border border-border px-4 py-2 text-xs font-medium hover:bg-muted">Defer</button>
-            </div>
-          </Panel>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <Panel eyebrow="Fika nudge" title={l3.active_notifications.content.nudge_title} icon={Coffee} accent>
-              <p className="text-sm text-foreground/85">{l3.active_notifications.content.nudge_message}</p>
-              <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-                <BellRing className="h-3.5 w-3.5" />
-                Push · Slack · Desktop
-              </div>
-            </Panel>
-
-            <Panel eyebrow="Recommended mode" title={l3.employee_dashboard.data.suggested_task_mode} icon={Sparkles}>
-              <p className="text-sm text-foreground/85">
-                Afternoon forecast: <span className="font-medium text-foreground">{l3.employee_dashboard.data.afternoon_forecast}</span>
-              </p>
-              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-                  style={{ width: `${l3.employee_dashboard.data.current_energy_score}%` }}
-                />
-              </div>
-            </Panel>
-          </div>
-        </div>
-
-        {/* Team heatmap */}
-        <Panel className="lg:col-span-12" eyebrow="Team aggregate" title="Energy heatmap" icon={Users}>
+      {/* Team heatmap (primary HR view) */}
+      <section className="mb-8">
+        <Panel eyebrow="Org-wide · Layer 3 aggregates" title="Team energy heatmap" icon={Users}>
           <p className="mb-5 text-sm text-muted-foreground">
-            Status: <span className="text-foreground">{l3.team_aggregates.data.team_flow_status}</span>
+            Click a member to drill into their digital twin, signals, and pending recovery actions.
           </p>
-          <TeamHeatmap />
+          <SelectableTeamHeatmap selectedId={selectedId} onSelect={setSelectedId} />
         </Panel>
       </section>
 
+      {/* Action queue */}
+      <section className="mb-8">
+        <Panel eyebrow="Layer 3 · Manager approval queue" title="Pending recovery actions" icon={CalendarClock}>
+          {alerts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No pending actions — your team is in flow.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {alerts.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-start justify-between gap-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: a.severity === "Red" ? "var(--danger)" : "var(--warning)" }}
+                    />
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {a.name} <span className="font-normal text-muted-foreground">· {a.role}</span>
+                      </p>
+                      <p className="mt-1 text-sm text-foreground/80">{a.proposal}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-wider">
+                        <Tag>{a.action}</Tag>
+                        <Tag tone="warning">Flight risk: {a.risk}</Tag>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedId(a.id)}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                    >
+                      Review
+                    </button>
+                    <button
+                      disabled
+                      title="Coming soon"
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground opacity-60"
+                    >
+                      Approve
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </section>
+
+      {/* Drill-down on selected member */}
+      <section>
+        <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-muted-foreground">
+          <UserCheck className="h-3.5 w-3.5 text-primary" />
+          Member drill-down
+          <ChevronRight className="h-3 w-3" />
+          <span className="text-foreground">{selectedMember.name}</span>
+          <span className="text-muted-foreground">· {selectedMember.role}</span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <Panel className="lg:col-span-5" eyebrow="Layer 2 · Digital twin" title="Current capacity" icon={Activity}>
+            <div className="grid grid-cols-2 gap-4">
+              <EnergyGauge value={l2.energy_level} label="Energy" />
+              <EnergyGauge value={l2.cognitive_load} label="Cognitive Load" inverse />
+            </div>
+            <p className="mt-6 rounded-xl border border-border bg-muted/40 p-4 text-sm italic text-foreground/80">
+              "{l2.state_summary}"
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+              <Stat label="Role" value={l1.role} />
+              <Stat label="Flight risk" value={l1.flight_risk} />
+            </div>
+          </Panel>
+
+          <Panel className="lg:col-span-7" eyebrow="7-day trajectory" title="Energy vs. cognitive load" icon={TrendingUp}>
+            <TrendChart data={trend} />
+          </Panel>
+
+          <Panel className="lg:col-span-5" eyebrow="Layer 1 · Normalized signals" title="Stress signal radar" icon={Brain}>
+            <LoadRadar data={l1} />
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <Stat label="Switches/hr" value={l1.switches_per_hr} />
+              <Stat label="Busy work" value={`${l1.busy_work_pct}%`} />
+              <Stat label="Interruptions" value={l1.interruption_volume} />
+              <Stat label="After-hours" value={l1.after_hours ? "Yes" : "No"} />
+            </div>
+          </Panel>
+
+          <div className="grid gap-6 lg:col-span-7">
+            <Panel eyebrow="Recommended HR action" title={l3.manager_approval_queue.action.action_type} icon={AlertTriangle}>
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-sm text-foreground/85">{l3.manager_approval_queue.action.proposal_text}</p>
+                <span className="shrink-0 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-warning">
+                  {l3.manager_approval_queue.approval_status.replace("_", " ")}
+                </span>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Target · <span className="text-foreground">{l3.manager_approval_queue.action.target_meeting_or_time}</span>
+              </p>
+              <div className="mt-4 flex gap-2">
+                <button disabled title="Coming soon" className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground opacity-60">Approve</button>
+                <button disabled title="Coming soon" className="rounded-lg border border-border px-4 py-2 text-xs font-medium opacity-60">Defer</button>
+                <button disabled title="Coming soon" className="rounded-lg border border-border px-4 py-2 text-xs font-medium opacity-60">Send 1:1 invite</button>
+              </div>
+            </Panel>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Panel eyebrow="Suggested nudge to send" title={l3.active_notifications.content.nudge_title} icon={Coffee} accent>
+                <p className="text-sm text-foreground/85">{l3.active_notifications.content.nudge_message}</p>
+                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                  <BellRing className="h-3.5 w-3.5" />
+                  Channels · Slack · Email · Desktop
+                </div>
+              </Panel>
+
+              <Panel eyebrow="Workload guidance" title={l3.employee_dashboard.data.suggested_task_mode} icon={Sparkles}>
+                <p className="text-sm text-foreground/85">
+                  Afternoon forecast: <span className="font-medium text-foreground">{l3.employee_dashboard.data.afternoon_forecast}</span>
+                </p>
+                <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                    style={{ width: `${l3.employee_dashboard.data.current_energy_score}%` }}
+                  />
+                </div>
+              </Panel>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <footer className="mt-12 text-center text-xs text-muted-foreground">
-        Fikable · L1 Aggregator → L2 Cognitive Engine → L3 Action Layer
+        Fikable HR Console · L1 Aggregator → L2 Cognitive Engine → L3 Action Layer
       </footer>
     </main>
+  );
+}
+
+function SelectableTeamHeatmap({ selectedId, onSelect }: { selectedId: string; onSelect: (id: string) => void }) {
+  const tone = (s: string) => (s === "Green" ? "var(--success)" : s === "Amber" ? "var(--warning)" : "var(--danger)");
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      {TEAM_MEMBERS.map((m) => {
+        const active = m.id === selectedId;
+        return (
+          <button
+            key={m.id}
+            onClick={() => onSelect(m.id)}
+            className={`group relative overflow-hidden rounded-xl border bg-card p-4 text-left transition-shadow hover:shadow-md ${
+              active ? "border-primary ring-2 ring-primary/30" : "border-border"
+            }`}
+          >
+            <div className="absolute left-0 top-0 h-full w-1" style={{ background: tone(m.status) }} />
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold leading-tight">{m.name}</p>
+                <p className="text-xs text-muted-foreground">{m.role}</p>
+              </div>
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+                style={{ background: `color-mix(in oklab, ${tone(m.status)} 18%, transparent)`, color: tone(m.status) }}
+              >
+                {m.status}
+              </span>
+            </div>
+            <div className="mt-3 space-y-1.5">
+              <Bar label="Energy" value={m.energy} color="var(--chart-1)" />
+              <Bar label="Load" value={m.load} color="var(--chart-2)" />
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Bar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div>
+      <div className="mb-0.5 flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>{label}</span>
+        <span className="tabular-nums">{value}</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function Tag({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "warning" }) {
+  const c = tone === "warning" ? "var(--warning)" : "var(--muted-foreground)";
+  return (
+    <span
+      className="rounded-full px-2 py-0.5 font-medium"
+      style={{ background: `color-mix(in oklab, ${c} 14%, transparent)`, color: c }}
+    >
+      {children}
+    </span>
   );
 }
 
