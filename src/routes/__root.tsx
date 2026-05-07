@@ -76,10 +76,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Visualize burnout risk, energy, and Fika nudges from the Fikable multi-layer pipeline." },
       { name: "author", content: "Fikable" },
       { property: "og:title", content: "Fikable · Cognitive Load & Energy Dashboard" },
-      { property: "og:description", content: "Visualize burnout risk, energy, and Fika nudges." },
+      { property: "og:description", content: "Visualize burnout risk, energy, and Fika nudges from the Fikable multi-layer pipeline." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Fikable · Cognitive Load & Energy Dashboard" },
+      { name: "twitter:description", content: "Visualize burnout risk, energy, and Fika nudges from the Fikable multi-layer pipeline." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b54def33-9218-4d96-9382-fb700ee96c22/id-preview-4dc5d878--5ed4dfe3-7c7e-4abd-a594-504b03833444.lovable.app-1778172816674.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b54def33-9218-4d96-9382-fb700ee96c22/id-preview-4dc5d878--5ed4dfe3-7c7e-4abd-a594-504b03833444.lovable.app-1778172816674.png" },
     ],
     links: [
       {
