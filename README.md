@@ -1,4 +1,5 @@
-# Fikable - digital protector for office's wellbeingness
+# ☕ Fikable 
+**Prevent burnout before it happens. An AI-powered, privacy-first enterprise wellness engine.**
 
 Fikable is an AI-powered, privacy-first B2B enterprise platform designed for early burnout detection and intervention. By mapping enterprise telemetry against the 6 pillars of the Maslach Burnout Inventory, Fikable provides personalized employee wellness nudges and macro-level organizational insights.
 
