@@ -1,6 +1,10 @@
 # ☕ Fikable 
 **Prevent burnout before it happens. An AI-powered, privacy-first enterprise wellness engine.**
 
+# Credit to
+**Thuy Nhien Nguyen Phan** - Medical Health about data threshold and stress signals.
+**Dieu Linh Tran** - Business model and this brilliant idea.
+
 Fikable is an AI-powered, privacy-first B2B enterprise platform designed for early burnout detection and intervention. By mapping enterprise telemetry against the 6 pillars of the Maslach Burnout Inventory, Fikable provides personalized employee wellness nudges and macro-level organizational insights.
 
 ## Feature
